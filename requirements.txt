@@ -1,0 +1,3 @@
+# Bibliothèques du projet. Elles seront ajoutées aux étapes suivantes.
+python-dotenv==1.2.4
+feedparser==6.0.14
