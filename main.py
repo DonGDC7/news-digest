@@ -1,5 +1,6 @@
+from articles import print_article_preview
 from config import REQUIRED_SETTINGS, load_config
-from feeds import print_recent_articles
+from feeds import fetch_articles, keep_recent, print_articles
 
 
 def main() -> None:
@@ -10,7 +11,14 @@ def main() -> None:
         status = "présente" if config[name] else "vide"
         print(f"- {name} : {status}")
     print()
-    print_recent_articles()
+    articles = fetch_articles()
+    recent = keep_recent(articles)
+    print(f"{len(articles)} articles lus, {len(recent)} gardés")
+    print_articles(recent)
+    if not recent:
+        print("aucun article à lire")
+        return
+    print_article_preview(recent[0])
 
 
 if __name__ == "__main__":

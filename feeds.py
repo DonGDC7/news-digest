@@ -3,19 +3,14 @@ from email.utils import parsedate_to_datetime
 
 import feedparser
 
-# Reuters ne publie plus de flux RSS public depuis 2020.
-# Cette adresse Google News ne renvoie que des articles du site reuters.com.
 FEEDS = (
     {
         "source": "BBC News",
         "url": "https://feeds.bbci.co.uk/news/rss.xml",
     },
     {
-        "source": "Reuters",
-        "url": (
-            "https://news.google.com/rss/search"
-            "?q=when:24h+site:reuters.com&ceid=US:en&hl=en-US&gl=US"
-        ),
+        "source": "The Guardian",
+        "url": "https://www.theguardian.com/world/rss",
     },
 )
 
