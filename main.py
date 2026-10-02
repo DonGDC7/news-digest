@@ -1,5 +1,5 @@
 from config import REQUIRED_SETTINGS, load_config
-from feeds import fetch_articles, print_articles
+from feeds import print_recent_articles
 
 
 def main() -> None:
@@ -10,7 +10,7 @@ def main() -> None:
         status = "présente" if config[name] else "vide"
         print(f"- {name} : {status}")
     print()
-    print_articles(fetch_articles())
+    print_recent_articles()
 
 
 if __name__ == "__main__":
