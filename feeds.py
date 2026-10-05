@@ -14,9 +14,10 @@ FEEDS = (
     },
 )
 
-# Au plus 5 articles par source, publiés dans les dernières 24 heures.
+# Au plus 3 articles par source, publiés dans les dernières 24 heures.
+# Les pages en direct (/live/) sont écartées.
 MAX_AGE = timedelta(hours=24)
-MAX_PER_SOURCE = 5
+MAX_PER_SOURCE = 3
 
 
 def fetch_articles() -> list[dict[str, str]]:
@@ -69,6 +70,8 @@ def keep_recent(
         feed["source"]: [] for feed in FEEDS
     }
     for _, article in fresh:
+        if "/live/" in article.get("link", ""):
+            continue
         source = article["source"]
         chosen = per_source.setdefault(source, [])
         if len(chosen) >= MAX_PER_SOURCE:

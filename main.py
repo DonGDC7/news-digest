@@ -1,6 +1,6 @@
-from articles import print_article_preview
 from config import REQUIRED_SETTINGS, load_config
 from feeds import fetch_articles, keep_recent, print_articles
+from summarize import summarize_saved_articles
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     if not recent:
         print("aucun article à lire")
         return
-    print_article_preview(recent[0])
+    summarize_saved_articles(recent)
 
 
 if __name__ == "__main__":

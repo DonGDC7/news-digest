@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent
 
 REQUIRED_SETTINGS = (
-    "ANTHROPIC_API_KEY",
+    "CURSOR_API_KEY",
     "GMAIL_ADDRESS",
     "GMAIL_APP_PASSWORD",
     "RECIPIENT_EMAIL",
