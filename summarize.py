@@ -190,17 +190,19 @@ def articles_with_text(
     return ready
 
 
-def summarize_saved_articles(articles: list[dict[str, str]] | None = None) -> None:
+def summarize_saved_articles(
+    articles: list[dict[str, str]] | None = None,
+) -> list[dict[str, str]]:
     config = load_config()
     api_key = config["CURSOR_API_KEY"]
     if not api_key:
         print("CURSOR_API_KEY : vide")
-        return
+        return []
 
     ready = articles_with_text(articles)
     if not ready:
         print("aucun article avec du texte")
-        return
+        return []
 
     tokens = {"input": 0, "output": 0, "total": 0}
     print(f"Un seul appel pour {len(ready)} articles")
@@ -208,10 +210,10 @@ def summarize_saved_articles(articles: list[dict[str, str]] | None = None) -> No
         last_message, usage, calls = run_prompt(summary_prompt(ready), api_key)
     except CursorAgentError as error:
         print(f"Cursor injoignable ({error})")
-        return
+        return []
     except RuntimeError as error:
         print(f"résumé impossible ({error})")
-        return
+        return []
     add_usage(tokens, usage)
     if calls:
         print(f"Appels d'outils : {', '.join(calls)}")
@@ -237,11 +239,21 @@ def summarize_saved_articles(articles: list[dict[str, str]] | None = None) -> No
             add_usage(tokens, one_usage)
             summaries.append(text)
 
+    results = []
     for article, summary in zip(ready, summaries):
         print(f"[{article['source']}] {article['title']}")
         print(summary or "résumé vide")
         print()
+        results.append(
+            {
+                "source": article["source"],
+                "title": article["title"],
+                "link": article["link"],
+                "summary": summary,
+            }
+        )
     print_tokens(tokens)
+    return results
 
 
 if __name__ == "__main__":

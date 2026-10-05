@@ -1,4 +1,5 @@
 import smtplib
+from datetime import date
 from email.message import EmailMessage
 
 from config import load_config
@@ -45,6 +46,25 @@ def send_email(subject: str, body: str) -> None:
             "Gmail a refusé l'identification. "
             "Vérifie le mot de passe d'application."
         ) from error
+
+
+def digest_body(items: list[dict[str, str]]) -> str:
+    sections = []
+    for item in items:
+        summary = item["summary"] or "résumé indisponible"
+        sections.append(
+            f"{item['title']}\n"
+            f"Source : {item['source']}\n\n"
+            f"{summary}\n\n"
+            f"{item['link']}"
+        )
+    return "\n\n---\n\n".join(sections)
+
+
+def send_digest(items: list[dict[str, str]]) -> None:
+    subject = f"Résumé des news du {date.today().strftime('%d/%m/%Y')}"
+    send_email(subject, digest_body(items))
+    print("email envoyé")
 
 
 def send_test_email() -> None:

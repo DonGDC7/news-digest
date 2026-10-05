@@ -1,4 +1,5 @@
 from config import REQUIRED_SETTINGS, load_config
+from emailer import send_digest
 from feeds import fetch_articles, keep_recent, print_articles
 from summarize import summarize_saved_articles
 
@@ -18,7 +19,14 @@ def main() -> None:
     if not recent:
         print("aucun article à lire")
         return
-    summarize_saved_articles(recent)
+    summaries = summarize_saved_articles(recent)
+    if not summaries:
+        print("aucun résumé à envoyer")
+        return
+    try:
+        send_digest(summaries)
+    except RuntimeError as error:
+        print(f"envoi impossible ({error})")
 
 
 if __name__ == "__main__":
