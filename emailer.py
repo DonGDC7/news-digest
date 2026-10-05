@@ -48,22 +48,36 @@ def send_email(subject: str, body: str) -> None:
         ) from error
 
 
-def digest_body(items: list[dict[str, str]]) -> str:
+def digest_body(items: list[dict[str, str]], problem: str = "") -> str:
     sections = []
+    if problem:
+        sections.append(problem)
     for item in items:
-        summary = item["summary"] or "résumé indisponible"
-        sections.append(
-            f"{item['title']}\n"
-            f"Source : {item['source']}\n\n"
-            f"{summary}\n\n"
-            f"{item['link']}"
-        )
+        lines = [item["title"], f"Source : {item['source']}"]
+        summary = item.get("summary", "").strip()
+        note = item.get("note", "").strip()
+        if summary:
+            lines.extend(["", summary])
+        elif note:
+            lines.extend(["", note])
+        elif not problem:
+            lines.extend(["", "résumé indisponible"])
+        lines.extend(["", item["link"]])
+        sections.append("\n".join(lines))
     return "\n\n---\n\n".join(sections)
 
 
-def send_digest(items: list[dict[str, str]]) -> None:
-    subject = f"Résumé des news du {date.today().strftime('%d/%m/%Y')}"
-    send_email(subject, digest_body(items))
+def digest_subject() -> str:
+    return f"Résumé des news du {date.today().strftime('%d/%m/%Y')}"
+
+
+def send_digest(items: list[dict[str, str]], problem: str = "") -> None:
+    send_email(digest_subject(), digest_body(items, problem))
+    print("email envoyé")
+
+
+def send_status(body: str) -> None:
+    send_email(digest_subject(), body)
     print("email envoyé")
 
 

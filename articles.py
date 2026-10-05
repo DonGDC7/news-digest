@@ -39,7 +39,8 @@ def print_article_preview(article: dict[str, str]) -> None:
 if __name__ == "__main__":
     from feeds import fetch_articles, keep_recent
 
-    recent = keep_recent(fetch_articles())
+    fetched, _unavailable = fetch_articles()
+    recent = keep_recent(fetched)
     if not recent:
         print("aucun article à lire")
     else:

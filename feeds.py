@@ -20,12 +20,19 @@ MAX_AGE = timedelta(hours=24)
 MAX_PER_SOURCE = 3
 
 
-def fetch_articles() -> list[dict[str, str]]:
+def fetch_articles(feeds=None) -> tuple[list[dict[str, str]], list[str]]:
     articles = []
-    for feed in FEEDS:
-        parsed = feedparser.parse(feed["url"])
+    unavailable = []
+    for feed in FEEDS if feeds is None else feeds:
+        try:
+            parsed = feedparser.parse(feed["url"])
+        except Exception:
+            print(f"{feed['source']} : flux indisponible")
+            unavailable.append(feed["source"])
+            continue
         if not parsed.entries:
             print(f"{feed['source']} : flux indisponible")
+            unavailable.append(feed["source"])
             continue
         for entry in parsed.entries:
             articles.append(
@@ -36,7 +43,37 @@ def fetch_articles() -> list[dict[str, str]]:
                     "date": entry.get("published", "").strip(),
                 }
             )
-    return articles
+    return articles, unavailable
+
+
+def join_names(names: list[str]) -> str:
+    if len(names) <= 1:
+        return names[0] if names else ""
+    return ", ".join(names[:-1]) + " et " + names[-1]
+
+
+def missing_source_notice(unavailable: list[str]) -> str:
+    if not unavailable:
+        return ""
+    return (
+        f"{join_names(unavailable)} : flux indisponible. "
+        "Les articles ci-dessous viennent des autres sources."
+    )
+
+
+def empty_day_message(unavailable: list[str]) -> str:
+    if unavailable and len(unavailable) == len(FEEDS):
+        return (
+            f"Aucun flux n'a répondu ({join_names(unavailable)}). "
+            "Aucun article n'a pu être lu."
+        )
+    if unavailable:
+        return (
+            f"{join_names(unavailable)} : flux indisponible. "
+            "Aucun article publié dans les dernières 24 heures "
+            "sur les autres sources."
+        )
+    return "Aucun article publié dans les dernières 24 heures."
 
 
 def article_datetime(article: dict[str, str]) -> datetime | None:
@@ -93,7 +130,7 @@ def print_articles(articles: list[dict[str, str]]) -> None:
 
 
 def print_recent_articles() -> None:
-    articles = fetch_articles()
+    articles, _unavailable = fetch_articles()
     recent = keep_recent(articles)
     print(f"{len(articles)} articles lus, {len(recent)} gardés")
     print_articles(recent)

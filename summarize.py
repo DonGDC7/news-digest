@@ -173,36 +173,71 @@ def print_tokens(total: dict[str, int]) -> None:
     )
 
 
+MISSING_ARTICLE = "Article manquant : le texte de la page n'a pas pu être lu."
+
+
 def articles_with_text(
     articles: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
     from articles import fetch_article_text
     from feeds import fetch_articles, keep_recent
 
-    selected = articles if articles is not None else keep_recent(fetch_articles())
-    ready = []
+    if articles is not None:
+        selected = articles
+    else:
+        fetched, _unavailable = fetch_articles()
+        selected = keep_recent(fetched)
+    prepared = []
     for article in selected:
         text = fetch_article_text(article["link"])
         if not text:
             print(f"texte introuvable : {article['title']}")
-            continue
-        ready.append({**article, "text": text})
-    return ready
+        prepared.append({**article, "text": text})
+    return prepared
+
+
+def to_digest_item(article: dict[str, str], summary: str = "") -> dict[str, str]:
+    note = ""
+    if not article.get("text") and not summary:
+        note = MISSING_ARTICLE
+    return {
+        "source": article["source"],
+        "title": article["title"],
+        "link": article["link"],
+        "summary": summary,
+        "note": note,
+    }
+
+
+def items_without_summaries(
+    prepared: list[dict[str, str]], reason: str
+) -> tuple[list[dict[str, str]], str]:
+    problem = (
+        "Problème : les résumés n'ont pas pu être produits "
+        f"({reason}). Cet email contient les titres et les liens, sans résumés."
+    )
+    print(problem)
+    return [to_digest_item(article) for article in prepared], problem
 
 
 def summarize_saved_articles(
     articles: list[dict[str, str]] | None = None,
-) -> list[dict[str, str]]:
-    config = load_config()
-    api_key = config["CURSOR_API_KEY"]
+    api_key: str | None = None,
+) -> tuple[list[dict[str, str]], str]:
+    if api_key is None:
+        api_key = load_config()["CURSOR_API_KEY"]
+    prepared = articles_with_text(articles)
+    if not prepared:
+        print("aucun article à lire")
+        return [], ""
     if not api_key:
         print("CURSOR_API_KEY : vide")
-        return []
+        return items_without_summaries(prepared, "clé Cursor absente")
 
-    ready = articles_with_text(articles)
+    ready = [article for article in prepared if article.get("text")]
     if not ready:
         print("aucun article avec du texte")
-        return []
+        return [to_digest_item(article) for article in prepared], ""
 
     tokens = {"input": 0, "output": 0, "total": 0}
     print(f"Un seul appel pour {len(ready)} articles")
@@ -210,10 +245,10 @@ def summarize_saved_articles(
         last_message, usage, calls = run_prompt(summary_prompt(ready), api_key)
     except CursorAgentError as error:
         print(f"Cursor injoignable ({error})")
-        return []
-    except RuntimeError as error:
+        return items_without_summaries(prepared, "Cursor injoignable")
+    except Exception as error:
         print(f"résumé impossible ({error})")
-        return []
+        return items_without_summaries(prepared, "résumé impossible")
     add_usage(tokens, usage)
     if calls:
         print(f"Appels d'outils : {', '.join(calls)}")
@@ -232,7 +267,7 @@ def summarize_saved_articles(
                 text, one_usage, _one_calls = run_prompt(
                     one_article_prompt(article), api_key
                 )
-            except (CursorAgentError, RuntimeError) as error:
+            except Exception as error:
                 print(f"résumé impossible pour {article['title']} ({error})")
                 text = ""
                 one_usage = None
@@ -240,20 +275,18 @@ def summarize_saved_articles(
             summaries.append(text)
 
     results = []
-    for article, summary in zip(ready, summaries):
+    ready_summaries = iter(summaries)
+    for article in prepared:
+        summary = next(ready_summaries) if article.get("text") else ""
         print(f"[{article['source']}] {article['title']}")
-        print(summary or "résumé vide")
+        if article.get("text"):
+            print(summary or "résumé vide")
+        else:
+            print(MISSING_ARTICLE)
         print()
-        results.append(
-            {
-                "source": article["source"],
-                "title": article["title"],
-                "link": article["link"],
-                "summary": summary,
-            }
-        )
+        results.append(to_digest_item(article, summary))
     print_tokens(tokens)
-    return results
+    return results, ""
 
 
 if __name__ == "__main__":
